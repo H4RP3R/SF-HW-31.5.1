@@ -4,6 +4,7 @@ import (
 	"errors"
 	"reflect"
 	"testing"
+	"time"
 )
 
 func Test_dbSet_string_string(t *testing.T) {
@@ -370,5 +371,39 @@ func Test_dbClear_emptyStorage(t *testing.T) {
 	err := db.Clear()
 	if !errors.Is(err, ErrStorageAlreadyEmpty) {
 		t.Errorf("expected ErrStorageAlreadyEmpty, got %v", err)
+	}
+}
+
+// TODO: add edge cases.
+func Test_dbSetTTL_emptyStorage(t *testing.T) {
+	testData := map[int]string{
+		1: "The Vanished Birds",
+		2: "Dune",
+		3: "Neuromancer",
+		4: "Do Androids Dream of Electric Sheep?",
+		5: "The Three-Body Problem",
+		6: "Ancillary Justice",
+	}
+	db := New[int, string]()
+	defer db.Stop()
+
+	ttl := 500 * time.Millisecond
+	checkupTimeout := 2 * time.Second
+	db.SetTTL(ttl, checkupTimeout)
+
+	err := db.SetMany(testData)
+	if err != nil {
+		t.Fatalf("unexpected error")
+	}
+
+	if db.Size() != len(testData) {
+		t.Errorf("expected initial cache size=%d, got size=%d", len(testData), db.Size())
+	}
+
+	<-time.After(checkupTimeout + 100*time.Millisecond)
+	for key := range testData {
+		if val, ok := db.Get(key); ok {
+			t.Errorf("entry key:%v val:%+v wasn't deleted by the timer", key, val)
+		}
 	}
 }
