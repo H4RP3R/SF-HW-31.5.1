@@ -14,7 +14,7 @@ func Test_dbSet_string_string(t *testing.T) {
 	}
 
 	db := db[string, string]{
-		storage: make(map[string]string),
+		storage: make(map[string]entry[string]),
 	}
 
 	for k, v := range testData {
@@ -25,7 +25,7 @@ func Test_dbSet_string_string(t *testing.T) {
 	}
 
 	for k, v := range testData {
-		gotVal := db.storage[k]
+		gotVal := db.storage[k].payload
 		if v != gotVal {
 			t.Errorf("want val: %v, got val: %v", v, gotVal)
 		}
@@ -45,7 +45,7 @@ func Test_dbSet_struct_bool(t *testing.T) {
 	}
 
 	db := db[testType, bool]{
-		storage: make(map[testType]bool),
+		storage: make(map[testType]entry[bool]),
 	}
 
 	for k, v := range testData {
@@ -56,7 +56,7 @@ func Test_dbSet_struct_bool(t *testing.T) {
 	}
 
 	for k, v := range testData {
-		gotVal := db.storage[k]
+		gotVal := db.storage[k].payload
 		if v != gotVal {
 			t.Errorf("want val: %v, got val: %v", v, gotVal)
 		}
@@ -148,6 +148,7 @@ func Test_dbSetMany(t *testing.T) {
 func Test_dbSetMany_emptyMap(t *testing.T) {
 	var emptyData = make(map[int]string)
 	db := New[int, string]()
+	defer db.Stop()
 	err := db.SetMany(emptyData)
 	if !errors.Is(err, ErrNoDataToSet) {
 		t.Errorf("expected ErrNoDataToSet error, got %v", err)
@@ -165,6 +166,7 @@ func Test_dbGetMany(t *testing.T) {
 	}
 
 	db := New[int, string]()
+	defer db.Stop()
 	err := db.SetMany(testData)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -186,6 +188,7 @@ func Test_dbGetMany(t *testing.T) {
 
 func Test_dbGetMany_NoKeys(t *testing.T) {
 	db := New[int, string]()
+	defer db.Stop()
 	var targetKeys []int
 
 	got, err := db.GetMany(targetKeys)
@@ -248,6 +251,7 @@ func Test_dbExists(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			db := New[int, string]()
+			defer db.Stop()
 			var err error
 			if len(tt.testData) > 0 {
 				err = db.SetMany(tt.testData)
@@ -307,6 +311,7 @@ func Test_dbDelete(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			db := New[string, string]()
+			defer db.Stop()
 			for k, v := range tt.testData {
 				err := db.Set(k, v)
 				if err != nil {
@@ -336,6 +341,7 @@ func Test_dbClear(t *testing.T) {
 	}
 
 	db := New[int, string]()
+	defer db.Stop()
 	err := db.SetMany(testData)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -360,6 +366,7 @@ func Test_dbClear(t *testing.T) {
 
 func Test_dbClear_emptyStorage(t *testing.T) {
 	db := New[int, int]()
+	defer db.Stop()
 	err := db.Clear()
 	if !errors.Is(err, ErrStorageAlreadyEmpty) {
 		t.Errorf("expected ErrStorageAlreadyEmpty, got %v", err)
